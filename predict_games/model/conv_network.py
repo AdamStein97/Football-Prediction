@@ -5,13 +5,14 @@ class ConvNetwork():
         self.config = model_config
 
     def build_network(self, input_matrix):
+        input_matrix = tf.transpose(input_matrix, perm=[0,2,3,1])
         conv1 = tf.keras.layers.Conv2D(32, kernel_size=(3,3), activation=tf.nn.leaky_relu)(input_matrix)
         pool1 = tf.keras.layers.MaxPool2D()(conv1)
 
         conv2 = tf.keras.layers.Conv2D(32, kernel_size=(3, 3), activation=tf.nn.leaky_relu)(pool1)
         pool2 = tf.keras.layers.MaxPool2D()(conv2)
 
-        flatten = tf.keras.layers.Flatten(pool2)
+        flatten = tf.keras.layers.Flatten()(pool2)
 
         hidden_layer1 = tf.keras.layers.Dense(128, activation=tf.nn.leaky_relu)(flatten)
         hidden_layer2 = tf.keras.layers.Dense(256, activation=tf.nn.leaky_relu)(hidden_layer1)

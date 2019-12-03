@@ -6,14 +6,14 @@ def score_to_ohv(score):
     home_goals = int(split[0])
     away_goals = int(split[-1])
     if home_goals > away_goals:
-        return np.matrix([1, 0, 0])
+        return np.array([1, 0, 0])
     elif away_goals > home_goals:
-        return np.matrix([0,0,1])
+        return np.array([0,0,1])
     else:
-        return np.matrix([0,1,0])
+        return np.array([0,1,0])
 
 def shuffle_two_lists(x, y):
-    zipped = zip(x, y)
+    zipped = list(zip(x, y))
 
     random.shuffle(zipped)
 

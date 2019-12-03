@@ -13,14 +13,19 @@ class BatchManager():
         x = []
         y = []
         for match in match_data:
-            result_label = score_to_ohv(match['score'])
+            result_label = score_to_ohv("{}-{}".format(match['home_score'], match['away_score']))
             home_player_position_tuples = match['home_lineup']
             away_player_position_tuples = match['home_lineup']
             home_formation = match['home_formation']
             away_formation = match['away_formation']
-            match_obj = Match(data_manager, home_player_position_tuples, home_formation, away_player_position_tuples, away_formation)
-            x.append(match_obj)
-            y.append(result_label)
+            try:
+                match_obj = Match(data_manager, home_player_position_tuples, home_formation, away_player_position_tuples, away_formation)
+                x.append(match_obj)
+                y.append(result_label)
+            except:
+                print("Failed match")
+
+
 
         return x, y
 
