@@ -1,4 +1,5 @@
 import math
+import tensorflow as tf
 
 from predict_games.utils import score_to_ohv, shuffle_two_lists
 from predict_games.game_structures.match import Match
@@ -20,7 +21,7 @@ class BatchManager():
             away_formation = match['away_formation']
             try:
                 match_obj = Match(data_manager, home_player_position_tuples, home_formation, away_player_position_tuples, away_formation)
-                x.append(match_obj)
+                x.append(match_obj.match_matrix)
                 y.append(result_label)
             except:
                 print("Failed match")
@@ -29,31 +30,12 @@ class BatchManager():
 
         return x, y
 
-    def make_batches(self, match_data, data_manager, shuffle=True):
+    def make_batches(self, match_data, data_manager, test_perc=0.2):
         x_data, y_data = self.gather_json_data(match_data, data_manager)
 
-        if shuffle:
-            x_data, y_data = shuffle_two_lists(x_data, y_data)
+        test_set_size = int(math.floor(len(x_data)/self.batch_size * test_perc))
 
-        self.num_batches = int(math.floor(len(x_data) / self.batch_size))
+        dataset = tf.data.Dataset.from_tensor_slices((x_data, y_data)).batch(self.batch_size).shuffle(buffer_size=1000)
 
-        self.batches_x = []
-        self.batches_y = []
-
-        for i in range(self.num_batches):
-            batch_x = []
-            batch_y = []
-            for j in range(self.batch_size):
-                index = i * self.batch_size + j
-                batch_x.append(x_data[index])
-                batch_y.append(y_data[index])
-            self.batches_x.append(batch_x)
-            self.batches_y.append(batch_y)
-
-    def get_next_batch(self):
-        self.index = (self.index + 1) % self.num_batches
-        return self.batches_x[self.index], self.batches_y[self.index]
-
-
-    def get_match_matrix(self, batch_x):
-        return [match.match_matrix for match in batch_x]
+        self.test_batch_dataset = dataset.take(test_set_size)
+        self.train_batch_dataset = dataset.skip(test_set_size)

@@ -12,10 +12,9 @@ from predict_games.batch_manager import BatchManager
 from predict_games.model.conv_network import ConvNetwork
 
 class GamePredictModel():
-    def __init__(self, match_data_file_name="match_data_epl_18.json", config_name="config.json", train_perc=0.8):
+    def __init__(self, match_data_file_name="match_data_epl_18.json", config_name="config.json"):
         np.random.seed(88)
         random.seed(8)
-        tf.compat.v1.disable_eager_execution()
 
 
         config = json.load(open(os.path.join(pg.CONFIG_DIR, config_name)))
@@ -29,55 +28,45 @@ class GamePredictModel():
 
         match_data = json.load(open(os.path.join(pg.MATCH_DATA_DIR, match_data_file_name)))
         self.data_manager = DataManager(player_attribute_features=self.player_attributes)
-        self.init_batch_managers(match_data, train_perc)
-        self.init_tensors()
+        self.init_batch_managers(match_data)
         self.init_model()
-        self.saver = tf.compat.v1.train.Saver()
-
-    def init_tensors(self):
-        self.match_matricies = tf.compat.v1.placeholder(tf.float32, shape=(self.batch_size, self.num_player_attributes, self.game_dim[0], self.game_dim[1]))
-        self.results = tf.compat.v1.placeholder(tf.float32, shape=(self.batch_size, 3))
 
     def init_model(self):
         self.model = ConvNetwork(self.model_config)
-        self.y_pred, self.loss = self.model.call(self.match_matricies, self.results)
-        self.opt = tf.compat.v1.train.AdamOptimizer().minimize(self.loss)
+        self.opt = tf.keras.optimizers.Adam()
 
     def train(self):
         eval_freq = 100
-        save_freq = 1000
         test_eval_batches = 20
-        with tf.compat.v1.Session() as sess:
-            sess.run(tf.compat.v1.global_variables_initializer())
-            average_loss = 0
-            for i in range(self.epochs):
-                batch_x, batch_y = self.train_batch_manager.get_next_batch()
-                match_matrix = self.train_batch_manager.get_match_matrix(batch_x)
-                loss, _ = sess.run([self.loss, self.opt], feed_dict={self.match_matricies: match_matrix, self.results : batch_y})
-                average_loss += loss
-                if i % eval_freq == 0 and i > 0:
-                    print("Average Train Loss: {}".format(average_loss/eval_freq))
-                    average_loss = 0
-                    for j in range(test_eval_batches):
-                        loss = sess.run(self.loss,
-                                           feed_dict={self.match_matricies: match_matrix, self.results: batch_y})
-                        average_loss += loss
-                    print("Average Test Loss: {}".format(average_loss / test_eval_batches))
-                    average_loss = 0
-                if i % save_freq and i > 0:
-                    self.saver.save(sess, 'model', global_step=i)
+        train_loss_metric = tf.keras.metrics.Mean()
+        train_accuracy_metric = tf.keras.metrics.Accuracy()
+        test_loss_metric = tf.keras.metrics.Mean()
+        test_accuracy_metric = tf.keras.metrics.Accuracy()
+        for i in range(self.epochs):
+            for step, (x_batch_train, y_batch_train) in enumerate(self.batch_manager.train_batch_dataset):
+                with tf.GradientTape() as tape:
+                    y_pred = self.model(x_batch_train)
+                    loss = tf.nn.softmax_cross_entropy_with_logits(y_batch_train, y_pred)
+
+                grads = tape.gradient(loss, self.model.trainable_weights)
+                self.opt.apply_gradients(zip(grads, self.model.trainable_weights))
+                train_loss_metric.update_state(loss)
+                train_accuracy_metric.update_state(tf.argmax(y_pred, axis=-1), tf.argmax(y_batch_train, axis=-1))
+
+                if step % eval_freq == 0:
+                    for (x_batch_test, y_batch_test) in self.batch_manager.test_batch_dataset.take(test_eval_batches):
+                        y_pred = self.model(x_batch_test)
+                        loss = tf.nn.softmax_cross_entropy_with_logits(y_batch_test, y_pred)
+                        test_loss_metric.update_state(loss)
+                        test_accuracy_metric.update_state(tf.argmax(y_pred, axis=-1), tf.argmax(y_batch_test, axis=-1))
+
+                    print('Train ---- Step %s: mean loss = %s accuracy = %s' % (
+                    step, train_loss_metric.result().numpy(), train_accuracy_metric.result().numpy()* 100))
+                    print('Test ---- Step %s: mean loss = %s accuracy = %s' % (
+                    step, test_loss_metric.result().numpy(), test_accuracy_metric.result().numpy()* 100))
 
 
-    def init_batch_managers(self, match_data, train_perc):
-        random.shuffle(match_data)
-        train_set_size = int(math.floor(len(match_data) * train_perc))
 
-        train_set = match_data[:train_set_size]
-        test_set = match_data[train_set_size:]
-
-        self.train_batch_manager = BatchManager(self.batch_size)
-        self.train_batch_manager.make_batches(train_set, self.data_manager)
-
-        self.test_batch_manager = BatchManager(self.batch_size)
-        self.test_batch_manager.make_batches(test_set, self.data_manager)
-
+    def init_batch_managers(self, match_data):
+        self.batch_manager = BatchManager(self.batch_size)
+        self.batch_manager.make_batches(match_data, self.data_manager)
