@@ -1,7 +1,12 @@
 {
   "batch_size": 4,
-  "epochs" : 1000,
+  "epochs" : 10,
   "game_dim": [385,530],
   "player_attributes" :["Balance", "Shot_Power", "Short_Pass"],
-  "model_config": {}
+  "model_config": {
+    "conv_layers":
+    {},
+    "dense_layers":
+    {}
+  }
 }

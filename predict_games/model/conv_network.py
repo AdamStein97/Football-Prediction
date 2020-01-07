@@ -1,28 +1,30 @@
 import tensorflow as tf
 
-class ConvNetwork():
+class ConvNetwork(tf.keras.Model):
     def __init__(self, model_config):
+        super(ConvNetwork, self).__init__()
         self.config = model_config
+        self.build_network(model_config)
 
-    def build_network(self, input_matrix):
-        input_matrix = tf.transpose(input_matrix, perm=[0,2,3,1])
-        conv1 = tf.keras.layers.Conv2D(32, kernel_size=(3,3), activation=tf.nn.leaky_relu)(input_matrix)
-        pool1 = tf.keras.layers.MaxPool2D()(conv1)
+    def build_network(self, model_config):
+        conv1 = tf.keras.layers.Conv2D(32, kernel_size=(3,3), activation=tf.nn.leaky_relu)
+        pool1 = tf.keras.layers.MaxPool2D()
 
-        conv2 = tf.keras.layers.Conv2D(32, kernel_size=(3, 3), activation=tf.nn.leaky_relu)(pool1)
-        pool2 = tf.keras.layers.MaxPool2D()(conv2)
+        conv2 = tf.keras.layers.Conv2D(32, kernel_size=(3, 3), activation=tf.nn.leaky_relu)
+        pool2 = tf.keras.layers.MaxPool2D()
 
-        flatten = tf.keras.layers.Flatten()(pool2)
+        flatten = tf.keras.layers.Flatten()
 
-        hidden_layer1 = tf.keras.layers.Dense(128, activation=tf.nn.leaky_relu)(flatten)
-        hidden_layer2 = tf.keras.layers.Dense(256, activation=tf.nn.leaky_relu)(hidden_layer1)
-        hidden_layer3 = tf.keras.layers.Dense(64, activation=tf.nn.leaky_relu)(hidden_layer2)
-        hidden_layer4 = tf.keras.layers.Dense(3)(hidden_layer3)
+        hidden_layer1 = tf.keras.layers.Dense(128, activation=tf.nn.leaky_relu)
+        hidden_layer2 = tf.keras.layers.Dense(256, activation=tf.nn.leaky_relu)
+        hidden_layer3 = tf.keras.layers.Dense(64, activation=tf.nn.leaky_relu)
+        hidden_layer4 = tf.keras.layers.Dense(3)
 
-        return hidden_layer4
+        self.network = [conv1, pool1, conv2, pool2, flatten, hidden_layer1, hidden_layer2, hidden_layer3, hidden_layer4]
 
-
-    def call(self, input_matrix, y):
-        y_pred = self.build_network(input_matrix)
-        loss = tf.nn.softmax_cross_entropy_with_logits(y_pred, y)
-        return y_pred, loss
+    def call(self, input_matrix):
+        input = tf.transpose(input_matrix, perm=[0, 2, 3, 1])
+        for layer in self.network:
+            input = layer(input)
+        y_pred = input
+        return y_pred
