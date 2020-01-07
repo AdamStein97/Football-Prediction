@@ -4,27 +4,14 @@ import numpy as np
 from PIL import Image
 
 import predict_games as pg
-
-
-position_dict = {
-    "cb" : "Center Back",
-    "rb" : "Right Back",
-    "lb" : "Left Back",
-    "cm" : "Center Midfield",
-    "rm" : "Right Midfield",
-    "lm" : "Left Midfield",
-    "st" : "Striker",
-    "rw" : "Right Wing",
-    "lw" : "Left Wing",
-    "fw" : "Center Forward",
-    "am" : "Attacking Midfield"
-}
+from predict_games import position_translator
 
 class DataManager():
     def __init__(self, player_attribute_features=("Balance", "Shot_Power", "Short_Pass")):
         self.player_attribute_features = list(player_attribute_features)
         self.load_player_database()
         self.load_heat_map_dict()
+        self.pos_translator = position_translator.Translator()
 
     def load_heat_map_dict(self):
         self.heat_map_dict = {}
@@ -52,15 +39,10 @@ class DataManager():
 
     def convert_pos_formation_to_filename_convention(self, position, formation):
         preprocessed_formation = formation.replace("-", "")
-        preprocessed_position = position_dict[position[:2]]
-        if preprocessed_position == "Center Back" and preprocessed_formation[0] == "4":
-            preprocessed_position = "Left Center Back"
-        if preprocessed_position == "Center Midfield" and preprocessed_formation[1] == "4":
-            preprocessed_position = "Left Center Midfield"
-        if preprocessed_position == "Center Forward" and preprocessed_formation[-1] == "2":
-            preprocessed_position = "Left Center Forward"
-        filename = "{}_{}".format(preprocessed_position, preprocessed_formation)
-        return filename
+        preprocessed_position = self.pos_translator.translate_position(position,preprocessed_formation)
+        # filename = "{}_{}".format(preprocessed_position, preprocessed_formation)
+        # print("pos: " + str(preprocessed_position))
+        return preprocessed_position
 
     def get_player_heat_map(self, position, formation):
         key = self.convert_pos_formation_to_filename_convention(position, formation)
