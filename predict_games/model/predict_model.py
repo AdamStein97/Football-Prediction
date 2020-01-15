@@ -12,7 +12,7 @@ from predict_games.batch_manager import BatchManager
 from predict_games.model.conv_network import ConvNetwork
 
 class GamePredictModel():
-    def __init__(self, match_data_file_name="match_data_epl_18.json", config_name="config.json"):
+    def __init__(self, match_data_file_names=["match_data_epl_18.json","match_data_epl_19.json","match_data_la_liga_18.json","match_data_la_liga_19.json"], config_name="config.json"):
         np.random.seed(88)
         random.seed(8)
 
@@ -26,7 +26,10 @@ class GamePredictModel():
 
         self.epochs = config["epochs"]
 
-        match_data = json.load(open(os.path.join(pg.MATCH_DATA_DIR, match_data_file_name)))
+        match_data = []
+        for season in match_data_file_names:
+            match_data = match_data + json.load(open(os.path.join(pg.MATCH_DATA_DIR, season)))
+
         self.data_manager = DataManager(player_attribute_features=self.player_attributes)
         self.init_batch_managers(match_data)
         self.init_model()

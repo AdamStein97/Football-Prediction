@@ -1,5 +1,6 @@
 import math
 import tensorflow as tf
+import numpy as np
 
 from predict_games.utils import score_to_ohv, shuffle_two_lists
 from predict_games.game_structures.match import Match
@@ -16,11 +17,15 @@ class BatchManager():
         for match in match_data:
             result_label = score_to_ohv("{}-{}".format(match['home_score'], match['away_score']))
             home_player_position_tuples = match['home_lineup']
-            away_player_position_tuples = match['home_lineup']
+            away_player_position_tuples = match['away_lineup']
             home_formation = match['home_formation']
             away_formation = match['away_formation']
             try:
                 match_obj = Match(data_manager, home_player_position_tuples, home_formation, away_player_position_tuples, away_formation)
+                if np.isnan(match_obj.match_matrix).any():
+                    print("NaN Found")
+                if None in match_obj.match_matrix:
+                    print("None Found")
                 x.append(match_obj.match_matrix)
                 y.append(result_label)
             except:

@@ -19,7 +19,7 @@ class Translator():
         self.load_heatmaps()
 
     def load_heatmaps(self):
-        for data in os.listdir("../data/heatmaps"):
+        for data in os.listdir("../data/scaled_heatmaps"):
             self.heatmaps.append(data[:-4])
 
     def translate_position(self,pos_ab,formation):
@@ -93,6 +93,6 @@ class Translator():
             # else:
             #     print("Translation failed for: " + pos_ab + "_" + formation)
             #     return ""
-        print("Translation failed for: " + pos_ab + "_" + formation + " returning default...")
+        # print("Translation failed for: " + pos_ab + "_" + formation + " returning default...")
         return [heatmap for heatmap in self.heatmaps if position in heatmap][0]
 
