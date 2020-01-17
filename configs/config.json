@@ -1,6 +1,6 @@
 {
   "batch_size": 4,
-  "epochs" : 50,
+  "epochs" : 1000,
   "game_dim": [385,530],
   "player_attributes" :["Long_Pass", "Short_Pass", "Ball_Control", "Finishing"],
   "model_config": {
