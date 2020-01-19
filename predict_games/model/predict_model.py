@@ -13,8 +13,9 @@ from predict_games.model.conv_network import ConvNetwork
 
 class GamePredictModel():
     def __init__(self, match_data_file_names=["match_data_epl_18.json","match_data_epl_19.json","match_data_la_liga_18.json","match_data_la_liga_19.json"], config_name="config.json"):
-        np.random.seed(88)
+        np.random.seed(8)
         random.seed(8)
+        tf.random.set_seed(8)
 
 
         config = json.load(open(os.path.join(pg.CONFIG_DIR, config_name)))
@@ -40,11 +41,26 @@ class GamePredictModel():
 
     def train(self):
         self.model.compile(optimizer=self.opt, loss='categorical_crossentropy', metrics=["accuracy"])
+        test_loss_metric = tf.keras.metrics.Mean()
+        test_accuracy_metric = tf.keras.metrics.Accuracy()
+
         self.model.fit(self.batch_manager.train_batch_dataset,
-                       epochs=self.epochs,
+                       epochs=int(self.epochs),
                        validation_data=self.batch_manager.test_batch_dataset,
                        verbose=1
                        )
+
+        for (x_batch_test, y_batch_test) in self.batch_manager.test_batch_dataset:
+            y_pred = self.model(x_batch_test)
+            loss = tf.keras.losses.categorical_crossentropy(y_batch_test, y_pred)
+            test_loss_metric.update_state(loss)
+            test_accuracy_metric.update_state(tf.argmax(y_pred, axis=-1), tf.argmax(y_batch_test, axis=-1))
+
+        print("-- Training Completed --")
+        print('Test set: mean loss = %s accuracy = %s' % (
+            test_loss_metric.result().numpy(), test_accuracy_metric.result().numpy() * 100))
+
+
     def train_debug(self):
         eval_freq = 100
         test_eval_batches = 20

@@ -1,6 +1,6 @@
 {
   "batch_size": 16,
-  "epochs" : 1000,
+  "epochs" : 50,
   "player_attributes" :["Long_Pass", "Short_Pass", "Ball_Control", "Finishing"],
   "model_config": {
     "conv_layers":
