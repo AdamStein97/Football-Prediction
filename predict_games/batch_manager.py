@@ -10,7 +10,6 @@ class BatchManager():
         self.batch_size = batch_size
         self.index = 0
 
-    #TODO: Add betting odds fields
     def gather_json_data(self, match_data,data_manager):
         x = []
         y = []

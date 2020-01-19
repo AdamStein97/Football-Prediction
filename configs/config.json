@@ -1,12 +1,13 @@
 {
-  "batch_size": 4,
+  "batch_size": 16,
   "epochs" : 1000,
-  "game_dim": [385,530],
   "player_attributes" :["Long_Pass", "Short_Pass", "Ball_Control", "Finishing"],
   "model_config": {
     "conv_layers":
-    {},
-    "dense_layers":
-    {}
+    {
+      "kernal_size":[[3,3], [3,3]],
+      "kernals" :[32, 32]
+    },
+    "dense_layers": [128, 256, 64]
   }
 }

@@ -7,21 +7,22 @@ class ConvNetwork(tf.keras.Model):
         self.build_network(model_config)
 
     def build_network(self, model_config):
-        conv1 = tf.keras.layers.Conv2D(32, kernel_size=(3,3), activation=tf.nn.leaky_relu)
-        pool1 = tf.keras.layers.MaxPool2D()
-
-        conv2 = tf.keras.layers.Conv2D(32, kernel_size=(3, 3), activation=tf.nn.leaky_relu)
-        pool2 = tf.keras.layers.MaxPool2D()
+        num_conv_layers = len(model_config['conv_layers']['kernals'])
+        conv_layers = []
+        for i in range(num_conv_layers):
+            kernals = model_config['conv_layers']['kernals'][i]
+            kernal_size = model_config['conv_layers']['kernal_size'][i]
+            conv_layers.append(tf.keras.layers.Conv2D(kernals, kernel_size=kernal_size, activation=tf.nn.leaky_relu))
+            conv_layers.append(tf.keras.layers.MaxPool2D())
 
         flatten = tf.keras.layers.Flatten()
 
-        hidden_layer1 = tf.keras.layers.Dense(128, activation=tf.nn.leaky_relu)
-        hidden_layer2 = tf.keras.layers.Dense(256, activation=tf.nn.leaky_relu)
-        hidden_layer3 = tf.keras.layers.Dense(64, activation=tf.nn.leaky_relu)
-        hidden_layer4 = tf.keras.layers.Dense(3)
+        num_dense_layers = len(model_config['dense_layers'])
+        hidden_layers = [tf.keras.layers.Dense(model_config['dense_layers'][i], activation=tf.nn.leaky_relu) for i in range(num_dense_layers)]
 
-        self.network = [conv1, pool1, conv2, pool2, flatten, hidden_layer1, hidden_layer2, hidden_layer3, hidden_layer4]
+        final_layer = tf.keras.layers.Dense(3, activation=tf.nn.softmax)
 
+        self.network = conv_layers + [flatten] + hidden_layers + [final_layer]
     def call(self, input_matrix):
         input = tf.transpose(input_matrix, perm=[0, 2, 3, 1])
         for layer in self.network:

@@ -19,7 +19,6 @@ class GamePredictModel():
 
         config = json.load(open(os.path.join(pg.CONFIG_DIR, config_name)))
         self.batch_size = config["batch_size"]
-        self.game_dim = config["game_dim"]
         self.player_attributes = config["player_attributes"]
         self.num_player_attributes = len(self.player_attributes)
         self.model_config = config["model_config"]
@@ -38,7 +37,15 @@ class GamePredictModel():
         self.model = ConvNetwork(self.model_config)
         self.opt = tf.keras.optimizers.Adam()
 
+
     def train(self):
+        self.model.compile(optimizer=self.opt, loss='categorical_crossentropy', metrics=["accuracy"])
+        self.model.fit(self.batch_manager.train_batch_dataset,
+                       epochs=self.epochs,
+                       validation_data=self.batch_manager.test_batch_dataset,
+                       verbose=1
+                       )
+    def train_debug(self):
         eval_freq = 100
         test_eval_batches = 20
         train_loss_metric = tf.keras.metrics.Mean()
@@ -49,7 +56,7 @@ class GamePredictModel():
             for step, (x_batch_train, y_batch_train) in enumerate(self.batch_manager.train_batch_dataset):
                 with tf.GradientTape() as tape:
                     y_pred = self.model(x_batch_train)
-                    loss = tf.nn.softmax_cross_entropy_with_logits(y_batch_train, y_pred)
+                    loss = tf.keras.losses.categorical_crossentropy(y_batch_train, y_pred)
 
                 grads = tape.gradient(loss, self.model.trainable_weights)
                 self.opt.apply_gradients(zip(grads, self.model.trainable_weights))
@@ -59,7 +66,7 @@ class GamePredictModel():
                 if step % eval_freq == 0:
                     for (x_batch_test, y_batch_test) in self.batch_manager.test_batch_dataset.take(test_eval_batches):
                         y_pred = self.model(x_batch_test)
-                        loss = tf.nn.softmax_cross_entropy_with_logits(y_batch_test, y_pred)
+                        loss = tf.keras.losses.categorical_crossentropy(y_batch_test, y_pred)
                         test_loss_metric.update_state(loss)
                         test_accuracy_metric.update_state(tf.argmax(y_pred, axis=-1), tf.argmax(y_batch_test, axis=-1))
 
