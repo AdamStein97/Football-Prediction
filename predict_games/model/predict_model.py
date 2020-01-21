@@ -6,6 +6,7 @@ import math
 import random
 import tensorflow as tf
 import numpy as np
+import datetime
 
 from predict_games.data_manager import DataManager
 from predict_games.batch_manager import BatchManager
@@ -28,10 +29,10 @@ class GamePredictModel():
 
         match_data = []
         for season in match_data_file_names:
-            match_data = match_data + json.load(open(os.path.join(pg.MATCH_DATA_DIR, season)))
+            match_data += json.load(open(os.path.join(pg.MATCH_DATA_DIR, season)))
 
         self.data_manager = DataManager(player_attribute_features=self.player_attributes)
-        self.init_batch_managers(match_data)
+        self.init_batch_managers(match_data, match_val=json.load(open(os.path.join(pg.MATCH_DATA_DIR, "match_data_epl_20.json"))))
         self.init_model()
 
     def init_model(self):
@@ -44,13 +45,18 @@ class GamePredictModel():
         test_loss_metric = tf.keras.metrics.Mean()
         test_accuracy_metric = tf.keras.metrics.Accuracy()
 
+        log_dir = pg.LOG_DIR + "/" + datetime.datetime.now().strftime("%Y%m%d")
+        print(log_dir)
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+
         self.model.fit(self.batch_manager.train_batch_dataset,
                        epochs=int(self.epochs),
                        validation_data=self.batch_manager.test_batch_dataset,
-                       verbose=1
+                       verbose=1,
+                       callbacks=[tensorboard_callback]
                        )
 
-        for (x_batch_test, y_batch_test) in self.batch_manager.test_batch_dataset:
+        for (x_batch_test, y_batch_test) in self.val_batch_manager.train_batch_dataset:
             y_pred = self.model(x_batch_test)
             loss = tf.keras.losses.categorical_crossentropy(y_batch_test, y_pred)
             test_loss_metric.update_state(loss)
@@ -93,6 +99,10 @@ class GamePredictModel():
 
 
 
-    def init_batch_managers(self, match_data):
+    def init_batch_managers(self, match_data, match_val=None):
+        if match_val is not None:
+            self.val_batch_manager = BatchManager(self.batch_size)
+            self.val_batch_manager.make_batches(match_val, self.data_manager, test_perc=0.1)
+
         self.batch_manager = BatchManager(self.batch_size)
         self.batch_manager.make_batches(match_data, self.data_manager)

@@ -1,6 +1,8 @@
 import math
 import tensorflow as tf
 import numpy as np
+import pickle
+from sklearn import preprocessing
 
 from predict_games.utils import score_to_ohv, shuffle_two_lists
 from predict_games.game_structures.match import Match
@@ -13,6 +15,8 @@ class BatchManager():
     def gather_json_data(self, match_data,data_manager):
         x = []
         y = []
+        success = 0
+        failure = 0
         for match in match_data:
             result_label = score_to_ohv("{}-{}".format(match['home_score'], match['away_score']))
             home_player_position_tuples = match['home_lineup']
@@ -27,17 +31,37 @@ class BatchManager():
                     print("None Found")
                 x.append(match_obj.match_matrix)
                 y.append(result_label)
+                success += 1
             except:
                 print("Failed match")
+                failure  += 1
 
 
+        print("Succesful loaded : {}, Failed Load : {}, Perc loaded: {}".format(success, failure, success/(success + failure) * 100))
+
+        # #with open('formatted_x_data.json', 'w') as outfile:
+        # np.save(x, 'formatted_x_data.json')
+        # #with open('formatted_y_data.json', 'w') as outfile:
+        # np.save(y, 'formatted_y_data.json')
+
+
+        mean = np.mean(np.array(x), axis=0)
+        std = np.std(np.array(x), axis=0)
+
+        x = [(a - mean)/std for a in x]
 
         return x, y
 
-    def make_batches(self, match_data, data_manager, test_perc=0.2):
-        x_data, y_data = self.gather_json_data(match_data, data_manager)
+    def make_batches(self, match_data, data_manager, test_perc=0.2, load_data=False):
+        if load_data:
+            x_data = np.load('formatted_x_data.json')
+            y_data = np.load('formatted_y_data.json')
+        else:
+            x_data, y_data = self.gather_json_data(match_data, data_manager)
 
         test_set_size = int(math.floor(len(x_data)/self.batch_size * test_perc))
+
+        print(test_set_size)
 
         dataset = tf.data.Dataset.from_tensor_slices((x_data, y_data)).batch(self.batch_size).shuffle(buffer_size=1000)
 
