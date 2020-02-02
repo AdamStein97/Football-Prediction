@@ -3,6 +3,8 @@ import tensorflow as tf
 import numpy as np
 import pickle
 from sklearn import preprocessing
+import predict_games as pg
+import os
 
 from predict_games.utils import score_to_ohv, shuffle_two_lists
 from predict_games.game_structures.match import Match
@@ -39,23 +41,30 @@ class BatchManager():
 
         print("Succesful loaded : {}, Failed Load : {}, Perc loaded: {}".format(success, failure, success/(success + failure) * 100))
 
-        # #with open('formatted_x_data.json', 'w') as outfile:
-        # np.save(x, 'formatted_x_data.json')
-        # #with open('formatted_y_data.json', 'w') as outfile:
-        # np.save(y, 'formatted_y_data.json')
-
+        # with open('formatted_x_data.json', 'w') as outfile:
+        np.save(os.path.join(pg.FORMATTED_DATA_DIR, "x-"+self.filename),x)
+        #with open('formatted_y_data.json', 'w') as outfile:
+        np.save(os.path.join(pg.FORMATTED_DATA_DIR, "y-"+self.filename),y)
 
         mean = np.mean(np.array(x), axis=0)
         std = np.std(np.array(x), axis=0)
 
         x = [(a - mean)/std for a in x]
 
+        test = []
+        for x_sample in x:
+            if x_sample.tostring() in test:
+                print("Found duplicate")
+            test.append(x_sample.tostring())
+
         return x, y
 
-    def make_batches(self, match_data, data_manager, test_perc=0.2, load_data=False):
+    def make_batches(self, match_data, data_manager, data_names, test_perc=0.2, load_data=False):
+        self.filename = '-'.join(data_names)
+
         if load_data:
-            x_data = np.load('formatted_x_data.json')
-            y_data = np.load('formatted_y_data.json')
+            x_data = np.load(os.path.join(pg.FORMATTED_DATA_DIR, "x-"+self.filename+".npy"))
+            y_data = np.load(os.path.join(pg.FORMATTED_DATA_DIR, "y-"+self.filename+".npy"))
         else:
             x_data, y_data = self.gather_json_data(match_data, data_manager)
 

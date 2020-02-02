@@ -32,7 +32,7 @@ class GamePredictModel():
             match_data += json.load(open(os.path.join(pg.MATCH_DATA_DIR, season)))
 
         self.data_manager = DataManager(player_attribute_features=self.player_attributes)
-        self.init_batch_managers(match_data, match_val=json.load(open(os.path.join(pg.MATCH_DATA_DIR, "match_data_epl_20.json"))))
+        self.init_batch_managers(match_data, match_val=json.load(open(os.path.join(pg.MATCH_DATA_DIR, "match_data_epl_20.json"))), data_names=match_data_file_names,val_data_names=["match_data_epl_20.json"])
         self.init_model()
 
     def init_model(self):
@@ -48,6 +48,7 @@ class GamePredictModel():
         log_dir = pg.LOG_DIR + "/" + datetime.datetime.now().strftime("%Y%m%d")
         print(log_dir)
         tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+
 
         self.model.fit(self.batch_manager.train_batch_dataset,
                        epochs=int(self.epochs),
@@ -99,10 +100,10 @@ class GamePredictModel():
 
 
 
-    def init_batch_managers(self, match_data, match_val=None):
+    def init_batch_managers(self, match_data, data_names,val_data_names, match_val=None):
         if match_val is not None:
             self.val_batch_manager = BatchManager(self.batch_size)
-            self.val_batch_manager.make_batches(match_val, self.data_manager, test_perc=0.1)
+            self.val_batch_manager.make_batches(match_val, self.data_manager, test_perc=0.1, load_data=False,data_names=val_data_names)
 
         self.batch_manager = BatchManager(self.batch_size)
-        self.batch_manager.make_batches(match_data, self.data_manager)
+        self.batch_manager.make_batches(match_data, self.data_manager, load_data=False, data_names=data_names)
